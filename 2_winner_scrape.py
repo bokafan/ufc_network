@@ -3,7 +3,11 @@ import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from fake_useragent import UserAgent
+import tempfile
+import shutil
+import os
 
 # Load the input parquet with UFC event URLs
 df = pd.read_parquet("2a_ufc_events.parquet")
@@ -11,9 +15,22 @@ df = pd.read_parquet("2a_ufc_events.parquet")
 # Use rows 12 to 16 (first 5 relevant URLs)
 urls_to_scrape = df["URL"].tolist()[12:17]
 
+# Setup Chrome options with unique user data directory
+options = Options()
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+options.binary_location = "/usr/bin/google-chrome"  # Specify the path to Chrome binary
+
+# Create a temporary directory for user data
+temp_dir = tempfile.mkdtemp()
+print(f"Using temporary user data directory: {temp_dir}")
+options.add_argument(f"user-data-dir={temp_dir}")  # Unique user data directory
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+
 # Setup Chrome driver
 service = Service()
-options = webdriver.ChromeOptions()
 driver = webdriver.Chrome(service=service, options=options)
 
 # Generate headers with fake user agent
@@ -51,6 +68,9 @@ for url in urls_to_scrape:
 
 # Quit the driver
 driver.quit()
+
+# Remove the temporary user data directory after use
+shutil.rmtree(temp_dir)
 
 # Save to parquet with duplicates removed
 results_df = pd.DataFrame(rows).drop_duplicates()
