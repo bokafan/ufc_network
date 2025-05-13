@@ -20,17 +20,15 @@ options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-options.binary_location = "/usr/bin/google-chrome"  # Specify the path to Chrome binary
+options.binary_location = "/usr/bin/google-chrome"  # Path to Chrome binary
 
 # Create a temporary directory for user data
 temp_dir = tempfile.mkdtemp()
 print(f"Using temporary user data directory: {temp_dir}")
-options.add_argument(f"user-data-dir={temp_dir}")  # Unique user data directory
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
+options.add_argument(f"--user-data-dir={temp_dir}")  # ← FIXED: added missing double dash
 
 # Setup Chrome driver
-service = Service()
+service = Service()  # Will auto-locate chromedriver in PATH
 driver = webdriver.Chrome(service=service, options=options)
 
 # Generate headers with fake user agent
@@ -66,10 +64,8 @@ for url in urls_to_scrape:
 
     time.sleep(2)  # polite delay
 
-# Quit the driver
+# Quit the driver and clean up temp data
 driver.quit()
-
-# Remove the temporary user data directory after use
 shutil.rmtree(temp_dir)
 
 # Save to parquet with duplicates removed
