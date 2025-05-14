@@ -12,8 +12,8 @@ import os
 # Load the input parquet with UFC event URLs
 df = pd.read_parquet("2a_ufc_events.parquet")
 
-# Use rows 12 to 16 (first 5 relevant URLs)
-urls_to_scrape = df["URL"].tolist()[12:17]
+# run all rows from 12 to the end
+urls_to_scrape = df["URL"].tolist()[12:]
 
 # Setup Chrome options with unique user data directory
 options = Options()
