@@ -70,5 +70,5 @@ shutil.rmtree(temp_dir)
 
 # Save to parquet with duplicates removed
 results_df = pd.DataFrame(rows).drop_duplicates()
-results_df.to_parquet("3a_winners.parquet", index=False)
+results_df.to_parquet("3a_winners.parquet_350", index=False)
 print("✅ Saved winner data to 3a_winners.parquet")
