@@ -13,7 +13,7 @@ import os
 df = pd.read_parquet("2a_ufc_events.parquet")
 
 # run all rows from 12 to the end
-urls_to_scrape = df["URL"].tolist()[12:]
+urls_to_scrape = df["URL"].tolist()[12:350]
 
 # Setup Chrome options with unique user data directory
 options = Options()
