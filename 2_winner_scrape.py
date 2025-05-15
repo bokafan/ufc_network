@@ -13,7 +13,7 @@ import os
 df = pd.read_parquet("2a_ufc_events.parquet")
 
 # run all rows from 12 to the end
-urls_to_scrape = df["URL"].tolist()[12:350]
+urls_to_scrape = df["URL"].tolist()[350:761]
 
 # Setup Chrome options with unique user data directory
 options = Options()
@@ -70,5 +70,5 @@ shutil.rmtree(temp_dir)
 
 # Save to parquet with duplicates removed
 results_df = pd.DataFrame(rows).drop_duplicates()
-results_df.to_parquet("3a_winners.parquet_350", index=False)
-print("✅ Saved winner data to 3a_winners.parquet")
+results_df.to_parquet("3a_winners_760.parquet", index=False)
+print("✅ Saved winner data to 3a_winners_760.parquet")
