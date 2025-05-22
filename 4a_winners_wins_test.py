@@ -139,6 +139,9 @@ def scrape_chunk(fighter_chunk, chunk_num):
             print(f"❌ Error scraping {fighter_url}: {e}")
             continue
 
+        # Add this sleep after each fighter scrape
+        time.sleep(random.uniform(2, 8))
+
     driver.quit()
 
     filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
@@ -160,4 +163,4 @@ for chunk_num in range(total_chunks):
     scrape_chunk(fighter_chunk, chunk_num)
 
     run_shell("nordvpn disconnect")
-    time.sleep(5)  # optional delay between VPN changes
+    time.sleep(10)  # optional delay between VPN changes
