@@ -3,6 +3,7 @@ import random
 import time
 import pandas as pd
 import subprocess
+import re
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from selenium import webdriver
