@@ -27,12 +27,11 @@ chunk_size = 350
 
 # Function to run shell commands
 def run_shell(cmd):
-    print(f"▶️ Running: {cmd}")
+    print(f"\n▶️ Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
 # Main scraping logic
 def scrape_chunk(fighter_chunk, chunk_num):
-    # Start headless browser
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -46,6 +45,8 @@ def scrape_chunk(fighter_chunk, chunk_num):
         fighter_url = urljoin("https://www.tapology.com", row['winner_link'])
 
         print(f"\n🔍 Scraping {fighter_name}: {fighter_url}")
+        row_count_before = len(output)
+
         try:
             driver.get(fighter_url)
             WebDriverWait(driver, 10).until(
@@ -59,9 +60,11 @@ def scrape_chunk(fighter_chunk, chunk_num):
                 continue
 
             bouts = results_container.select("div[data-fighter-bout-target='bout']")
+            print(f"✅ Found {len(bouts)} bouts")
+
             for bout in bouts:
                 if 'Amateur Bouts' in bout.text:
-                    print("🚫 Reached 'Amateur Bouts'")
+                    print("🚫 Reached 'Amateur Bouts', stopping scrape for this fighter.")
                     break
 
                 result_div = bout.select_one("div.result div")
@@ -84,7 +87,6 @@ def scrape_chunk(fighter_chunk, chunk_num):
                 event_year = year_span.text.strip() if year_span else 'null'
                 event_md = date_span.text.strip() if date_span else 'null'
 
-                # Grab method/round/time all as one string
                 victory_details = 'null'
                 middle_col = bout.select_one("div.md\\:flex.flex-col.justify-center.gap-1\\.5")
                 if middle_col:
@@ -127,28 +129,30 @@ def scrape_chunk(fighter_chunk, chunk_num):
                     'victory_details': victory_details
                 })
 
+            new_rows = len(output) - row_count_before
+            if new_rows > 0:
+                print(f"📦 Added {new_rows} row(s) for {fighter_name}")
+            else:
+                print(f"⚠️ No valid rows scraped for {fighter_name}")
+
         except Exception as e:
             print(f"❌ Error scraping {fighter_url}: {e}")
             continue
 
     driver.quit()
 
-    # Save output
     filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
     pd.DataFrame(output).to_parquet(filename, index=False)
     print(f"✅ Saved chunk {chunk_num+1} → {filename}\n")
-
 
 # Loop through chunks
 total_chunks = (len(fighters) + chunk_size - 1) // chunk_size
 
 for chunk_num in range(total_chunks):
-    # VPN rotate
     city = random.choice(VPN_CITIES)
     run_shell("nordvpn disconnect || true")
     run_shell(f"nordvpn connect {city}")
 
-    # Extract chunk
     start_idx = chunk_num * chunk_size
     end_idx = start_idx + chunk_size
     fighter_chunk = fighters.iloc[start_idx:end_idx].to_dict(orient="records")
