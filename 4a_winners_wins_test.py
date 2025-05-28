@@ -30,6 +30,12 @@ def run_shell(cmd):
     print(f"\n▶️ Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
+def kill_zombie_chrome_processes():
+    """Kill zombie Chrome processes to avoid buildup."""
+    cmd = "ps aux | grep '[c]hrome' | awk '$8==\"Z\" {print $2}' | xargs -r kill -9"
+    print("\n🧹 Killing zombie Chrome processes...")
+    subprocess.run(cmd, shell=True)
+
 def init_driver():
     """Initialize a fresh Selenium Chrome driver in headless mode."""
     chrome_options = Options()
@@ -165,14 +171,15 @@ def scrape_chunk(fighter_chunk, chunk_num):
         except Exception as e:
             print(f"❌ Error scraping {fighter_url}: {e}")
 
+        kill_zombie_chrome_processes()  # Call cleanup after every URL scraped
         time.sleep(random.uniform(2, 8))
 
     driver.quit()
+    kill_zombie_chrome_processes()  # Cleanup one last time after quitting driver
 
     filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
     pd.DataFrame(output).to_parquet(filename, index=False)
     print(f"✅ Saved chunk {chunk_num+1} → {filename}\n")
-
 
 # Main loop
 total_chunks = (len(fighters) + chunk_size - 1) // chunk_size
