@@ -31,13 +31,7 @@ def run_shell(cmd):
     subprocess.run(cmd, shell=True, check=True)
 
 # Main scraping logic
-def scrape_chunk(fighter_chunk, chunk_num):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=chrome_options)
-
+def scrape_chunk(fighter_chunk, chunk_num, driver):
     output = []
 
     for row in fighter_chunk:
@@ -68,7 +62,11 @@ def scrape_chunk(fighter_chunk, chunk_num):
                     break
 
                 result_div = bout.select_one("div.result div")
-                if not result_div or result_div.text.strip() != 'W':
+                if not result_div:
+                    continue
+
+                outcome = result_div.text.strip()
+                if outcome not in ['W', 'L']:
                     continue
 
                 record_span = bout.select_one("span[title='Fighter Record Before Fight']")
@@ -126,7 +124,8 @@ def scrape_chunk(fighter_chunk, chunk_num):
                     'duration': duration,
                     'weight': weight,
                     'odds': odds,
-                    'victory_details': victory_details
+                    'victory_details': victory_details,
+                    'result_outcome': outcome  # 👈 New column
                 })
 
             new_rows = len(output) - row_count_before
@@ -141,8 +140,6 @@ def scrape_chunk(fighter_chunk, chunk_num):
 
         # Add this sleep after each fighter scrape
         time.sleep(random.uniform(2, 8))
-
-    driver.quit()
 
     filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
     pd.DataFrame(output).to_parquet(filename, index=False)
@@ -160,7 +157,14 @@ for chunk_num in range(total_chunks):
     end_idx = start_idx + chunk_size
     fighter_chunk = fighters.iloc[start_idx:end_idx].to_dict(orient="records")
 
-    scrape_chunk(fighter_chunk, chunk_num)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=chrome_options)
 
+    scrape_chunk(fighter_chunk, chunk_num, driver)
+
+    driver.quit()
     run_shell("nordvpn disconnect")
     time.sleep(10)  # optional delay between VPN changes
