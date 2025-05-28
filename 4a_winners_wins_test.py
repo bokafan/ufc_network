@@ -30,6 +30,14 @@ def run_shell(cmd):
     print(f"\n▶️ Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
+# Initialize Selenium driver
+def init_driver():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    return webdriver.Chrome(options=chrome_options)
+
 # Main scraping logic
 def scrape_chunk(fighter_chunk, chunk_num, driver):
     output = []
@@ -42,8 +50,14 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
         row_count_before = len(output)
 
         try:
-            driver.get(fighter_url)
-            WebDriverWait(driver, 10).until(
+            try:
+                driver.get(fighter_url)
+            except Exception as e:
+                print(f"❌ Failed initial load: {e}. Retrying once...")
+                time.sleep(5)
+                driver.get(fighter_url)
+
+            WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "section.fighterFightResults"))
             )
             soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -62,11 +76,8 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
                     break
 
                 result_div = bout.select_one("div.result div")
-                if not result_div:
-                    continue
-
-                outcome = result_div.text.strip()
-                if outcome not in ['W', 'L']:
+                result_text = result_div.text.strip() if result_div else ''
+                if result_text not in ['W', 'L']:
                     continue
 
                 record_span = bout.select_one("span[title='Fighter Record Before Fight']")
@@ -125,7 +136,7 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
                     'weight': weight,
                     'odds': odds,
                     'victory_details': victory_details,
-                    'result_outcome': outcome  # 👈 New column
+                    'result': result_text
                 })
 
             new_rows = len(output) - row_count_before
@@ -138,7 +149,6 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
             print(f"❌ Error scraping {fighter_url}: {e}")
             continue
 
-        # Add this sleep after each fighter scrape
         time.sleep(random.uniform(2, 8))
 
     filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
@@ -157,14 +167,16 @@ for chunk_num in range(total_chunks):
     end_idx = start_idx + chunk_size
     fighter_chunk = fighters.iloc[start_idx:end_idx].to_dict(orient="records")
 
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        driver = init_driver()
+        scrape_chunk(fighter_chunk, chunk_num, driver)
+    except Exception as e:
+        print(f"🚨 Error during chunk {chunk_num+1}: {e}")
+    finally:
+        try:
+            driver.quit()
+        except:
+            pass
 
-    scrape_chunk(fighter_chunk, chunk_num, driver)
-
-    driver.quit()
     run_shell("nordvpn disconnect")
-    time.sleep(10)  # optional delay between VPN changes
+    time.sleep(10)
