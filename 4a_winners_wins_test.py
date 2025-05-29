@@ -30,6 +30,11 @@ def run_shell(cmd):
     print(f"\n▶️ Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
+def clean_text(text):
+    if isinstance(text, str):
+        return text.encode('utf-8', 'ignore').decode('utf-8')
+    return text
+
 # Initialize Selenium driver
 chrome_options = Options()
 chrome_options.add_argument("--headless")
@@ -45,7 +50,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
         fighter_name = row['winner']
         fighter_url = urljoin("https://www.tapology.com", row['winner_link'])
 
-        print(f"\n\ud83d\udd0d Scraping {fighter_name}: {fighter_url}")
+        print(f"Scraping {fighter_name}: {fighter_url}")
         row_count_before = len(output)
 
         try:
@@ -124,19 +129,20 @@ def scrape_chunk(fighter_chunk, chunk_num):
                                 odds = value
 
                 output.append({
-                    'original_fighter_name': fighter_name,
-                    'original_fighter_url': fighter_url,
-                    'opponent_name': opponent_name,
-                    'opponent_url': opponent_link,
-                    'event_url': event_url,
-                    'event_year': event_year,
-                    'event_month_day': event_md,
-                    'duration': duration,
-                    'weight': weight,
-                    'odds': odds,
-                    'victory_details': victory_details,
-                    'result': result_text
+                    'original_fighter_name': clean_text(fighter_name),
+                    'original_fighter_url': clean_text(fighter_url),
+                    'opponent_name': clean_text(opponent_name),
+                    'opponent_url': clean_text(opponent_link),
+                    'event_url': clean_text(event_url),
+                    'event_year': clean_text(event_year),
+                    'event_month_day': clean_text(event_md),
+                    'duration': clean_text(duration),
+                    'weight': clean_text(weight),
+                    'odds': clean_text(odds),
+                    'victory_details': clean_text(victory_details),
+                    'result': clean_text(result_text)
                 })
+
 
             new_rows = len(output) - row_count_before
             if new_rows > 0:
