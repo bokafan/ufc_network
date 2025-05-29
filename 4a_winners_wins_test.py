@@ -23,7 +23,7 @@ VPN_CITIES = [
 # Load all fighter data
 df = pd.read_parquet("3a_winners_combined.parquet")
 fighters = df[['winner', 'winner_link']].drop_duplicates().reset_index(drop=True)
-chunk_size = 350
+chunk_size = 100
 
 # Function to run shell commands (cleaned up)
 def run_shell(cmd):
