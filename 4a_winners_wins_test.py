@@ -27,7 +27,7 @@ chunk_size = 350
 
 # Function to run shell commands
 def run_shell(cmd):
-    print(f"\n\u25B6\uFE0F Running: {cmd}")
+    print(f"\n▶️ Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
 # Initialize Selenium driver
@@ -52,7 +52,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
             try:
                 driver.get(fighter_url)
             except Exception as e:
-                print(f"\u274c Failed initial load: {e}. Retrying once...")
+                print(f"❌ Failed initial load: {e}. Retrying once...")
                 time.sleep(5)
                 driver.get(fighter_url)
 
@@ -63,7 +63,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
             results_container = soup.select_one("section.fighterFightResults div#proResults")
 
             if not results_container:
-                print("\u274c No <div id='proResults'> found — skipping.")
+                print("❌  No <div id='proResults'> found — skipping.")
                 continue
 
             bouts = results_container.select("div[data-fighter-bout-target='bout']")
