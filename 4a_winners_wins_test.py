@@ -27,33 +27,32 @@ chunk_size = 350
 
 # Function to run shell commands
 def run_shell(cmd):
-    print(f"\n▶️ Running: {cmd}")
+    print(f"\n\u25B6\uFE0F Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
 # Initialize Selenium driver
-def init_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    return webdriver.Chrome(options=chrome_options)
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--no-sandbox")
+driver = webdriver.Chrome(options=chrome_options)
 
 # Main scraping logic
-def scrape_chunk(fighter_chunk, chunk_num, driver):
+def scrape_chunk(fighter_chunk, chunk_num):
     output = []
 
     for row in fighter_chunk:
         fighter_name = row['winner']
         fighter_url = urljoin("https://www.tapology.com", row['winner_link'])
 
-        print(f"\n🔍 Scraping {fighter_name}: {fighter_url}")
+        print(f"\n\ud83d\udd0d Scraping {fighter_name}: {fighter_url}")
         row_count_before = len(output)
 
         try:
             try:
                 driver.get(fighter_url)
             except Exception as e:
-                print(f"❌ Failed initial load: {e}. Retrying once...")
+                print(f"\u274c Failed initial load: {e}. Retrying once...")
                 time.sleep(5)
                 driver.get(fighter_url)
 
@@ -64,7 +63,7 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
             results_container = soup.select_one("section.fighterFightResults div#proResults")
 
             if not results_container:
-                print("❌ No <div id='proResults'> found — skipping.")
+                print("\u274c No <div id='proResults'> found — skipping.")
                 continue
 
             bouts = results_container.select("div[data-fighter-bout-target='bout']")
@@ -91,8 +90,8 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
                 event_tag = bout.select_one('a[href*="/fightcenter/events/"]')
                 event_url = urljoin("https://www.tapology.com", event_tag['href']) if event_tag else 'null'
 
-                year_span = bout.select_one('a[href*="/fightcenter/events/"] span.font-bold')
-                date_span = bout.select_one('a[href*="/fightcenter/events/"] span.text-neutral-600')
+                year_span = event_tag.select_one('span.font-bold') if event_tag else None
+                date_span = event_tag.select_one('span.text-neutral-600') if event_tag else None
                 event_year = year_span.text.strip() if year_span else 'null'
                 event_md = date_span.text.strip() if date_span else 'null'
 
@@ -151,7 +150,7 @@ def scrape_chunk(fighter_chunk, chunk_num, driver):
 
         time.sleep(random.uniform(2, 8))
 
-    filename = f"4b_winners_wins_{(chunk_num+1)*chunk_size}.parquet"
+    filename = f"4b_fighter_bouts_{(chunk_num+1)*chunk_size}.parquet"
     pd.DataFrame(output).to_parquet(filename, index=False)
     print(f"✅ Saved chunk {chunk_num+1} → {filename}\n")
 
@@ -168,15 +167,12 @@ for chunk_num in range(total_chunks):
     fighter_chunk = fighters.iloc[start_idx:end_idx].to_dict(orient="records")
 
     try:
-        driver = init_driver()
-        scrape_chunk(fighter_chunk, chunk_num, driver)
+        scrape_chunk(fighter_chunk, chunk_num)
     except Exception as e:
         print(f"🚨 Error during chunk {chunk_num+1}: {e}")
-    finally:
-        try:
-            driver.quit()
-        except:
-            pass
 
     run_shell("nordvpn disconnect")
     time.sleep(10)
+
+# Quit driver only once at the very end
+driver.quit()
