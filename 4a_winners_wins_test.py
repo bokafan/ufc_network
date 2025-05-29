@@ -25,22 +25,15 @@ df = pd.read_parquet("3a_winners_combined.parquet")
 fighters = df[['winner', 'winner_link']].drop_duplicates().reset_index(drop=True)
 chunk_size = 350
 
-# Function to run shell commands
+# Function to run shell commands (cleaned up)
 def run_shell(cmd):
     print(f"\n▶️ Running: {cmd}")
-    subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def clean_text(text):
     if isinstance(text, str):
         return text.encode('utf-8', 'ignore').decode('utf-8')
     return text
-
-# Initialize Selenium driver
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--no-sandbox")
-driver = webdriver.Chrome(options=chrome_options)
 
 # Main scraping logic
 def scrape_chunk(fighter_chunk, chunk_num):
@@ -52,6 +45,13 @@ def scrape_chunk(fighter_chunk, chunk_num):
 
         print(f"Scraping {fighter_name}: {fighter_url}")
         row_count_before = len(output)
+
+        # Initialize new driver for this fighter
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+        driver = webdriver.Chrome(options=chrome_options)
 
         try:
             try:
@@ -69,6 +69,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
 
             if not results_container:
                 print("❌  No <div id='proResults'> found — skipping.")
+                driver.quit()
                 continue
 
             bouts = results_container.select("div[data-fighter-bout-target='bout']")
@@ -143,7 +144,6 @@ def scrape_chunk(fighter_chunk, chunk_num):
                     'result': clean_text(result_text)
                 })
 
-
             new_rows = len(output) - row_count_before
             if new_rows > 0:
                 print(f"📦 Added {new_rows} row(s) for {fighter_name}")
@@ -152,7 +152,8 @@ def scrape_chunk(fighter_chunk, chunk_num):
 
         except Exception as e:
             print(f"❌ Error scraping {fighter_url}: {e}")
-            continue
+        finally:
+            driver.quit()
 
         time.sleep(random.uniform(2, 8))
 
@@ -179,6 +180,3 @@ for chunk_num in range(total_chunks):
 
     run_shell("nordvpn disconnect")
     time.sleep(10)
-
-# Quit driver only once at the very end
-driver.quit()
