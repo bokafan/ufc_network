@@ -23,7 +23,7 @@ VPN_CITIES = [
 # Load all fighter data
 df = pd.read_parquet("3a_winners_combined.parquet")
 fighters = df[['winner', 'winner_link']].drop_duplicates().reset_index(drop=True)
-chunk_size = 100
+chunk_size = 50
 
 # Function to run shell commands (cleaned up)
 def run_shell(cmd):
@@ -57,9 +57,23 @@ def scrape_chunk(fighter_chunk, chunk_num):
             try:
                 driver.get(fighter_url)
             except Exception as e:
-                print(f"❌ Failed initial load: {e}. Retrying once...")
+                print(f"❌ Failed initial load: {e}. Switching VPN and retrying...")
+                driver.quit()
+                run_shell("nordvpn disconnect || true")
+                time.sleep(3)
+                new_city = random.choice(VPN_CITIES)
+                run_shell(f"nordvpn connect {new_city}")
                 time.sleep(5)
-                driver.get(fighter_url)
+
+    # Restart driver
+    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        driver.get(fighter_url)
+    except Exception as e2:
+        print(f"❌ Retry after VPN switch also failed: {e2}")
+        driver.quit()
+        continue
+
 
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "section.fighterFightResults"))
