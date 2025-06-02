@@ -23,7 +23,7 @@ VPN_CITIES = [
 # Load fighter URL data
 df = pd.read_parquet("4c_unique_fighter_urls.parquet")
 fighters = df[['fighter_name', 'fighter_url']].drop_duplicates().reset_index(drop=True)
-chunk_size = 10
+chunk_size = 50
 
 def run_shell(cmd):
     print(f"\n▶️ Running: {cmd}")
@@ -204,7 +204,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
 
         time.sleep(random.uniform(2, 8))
 
-    filename = f"5a_final_historical_fighter_bouts_{(chunk_num+1)*chunk_size}.parquet"
+    filename = f"5a_final_historical_fighter_bouts_final_{(chunk_num+1)*chunk_size}.parquet"
     pd.DataFrame(output).to_parquet(filename, index=False)
     print(f"✅ Saved chunk {chunk_num+1} → {filename}\n")
 
