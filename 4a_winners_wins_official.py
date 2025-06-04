@@ -211,7 +211,7 @@ def scrape_chunk(fighter_chunk, chunk_num):
 # Loop through chunks
 total_chunks = (len(fighters) + chunk_size - 1) // chunk_size
 
-for chunk_num in range(242, total_chunks):
+for chunk_num in range(317, total_chunks):
     city = random.choice(VPN_CITIES)
     run_shell("nordvpn disconnect || true")
     run_shell(f"nordvpn connect {city}")
